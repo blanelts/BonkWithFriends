@@ -1,0 +1,3 @@
+namespace Megabonk.BonkWithFriends.Networking.Messages;
+
+internal delegate void SteamNetworkMessageDelegate(SteamNetworkMessage steamNetworkMessage);
