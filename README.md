@@ -30,7 +30,7 @@ C:/dotnet8sdk/dotnet build D:/BonkWithFriends/src/Megabonk.BonkWithFriends.cspro
 
 > **Note:** adjust the paths to `dotnet` and the project to match your setup.
 
-The compiled DLL will appear in `src/bin/Release/net6.0/`.
+The compiled DLL will appear in `src\obj\Release\net6.0\Megabonk.BonkWithFriends.dll`.
 
 ### 3. Install the compiled mod
 
