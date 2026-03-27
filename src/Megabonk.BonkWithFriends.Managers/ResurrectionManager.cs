@@ -180,6 +180,17 @@ public static class ResurrectionManager
 			Melon<BonkWithFriendsMod>.Logger.Warning($"[Resurrection] Could not reset isGameOver: {ex.Message}");
 		}
 
+		// Also call Heal through the native path for proper state updates
+		try
+		{
+			health.Heal(reviveHp);
+			Melon<BonkWithFriendsMod>.Logger.Msg($"[Resurrection] Called health.Heal({reviveHp})");
+		}
+		catch (System.Exception ex)
+		{
+			Melon<BonkWithFriendsMod>.Logger.Warning($"[Resurrection] health.Heal failed: {ex.Message}");
+		}
+
 		// Re-enable player components that may have been disabled during death
 		try
 		{
@@ -190,6 +201,27 @@ public static class ResurrectionManager
 			{
 				playerGo.SetActive(true);
 				Melon<BonkWithFriendsMod>.Logger.Msg("[Resurrection] Re-activated player GameObject");
+			}
+
+			// Re-enable the MyPlayer MonoBehaviour itself
+			if (!((Behaviour)myPlayer).enabled)
+			{
+				((Behaviour)myPlayer).enabled = true;
+				Melon<BonkWithFriendsMod>.Logger.Msg("[Resurrection] Re-enabled MyPlayer Behaviour");
+			}
+
+			// Re-enable ALL MonoBehaviours on the player that may have been disabled
+			var behaviours = ((Component)myPlayer).GetComponentsInChildren<MonoBehaviour>(true);
+			foreach (var b in behaviours)
+			{
+				if ((Object)(object)b != (Object)null && !((Behaviour)b).enabled)
+				{
+					try
+					{
+						((Behaviour)b).enabled = true;
+					}
+					catch { }
+				}
 			}
 
 			// Re-enable Rigidbody (may be set kinematic during death) and reset velocity
@@ -219,14 +251,11 @@ public static class ResurrectionManager
 			var animator = ((Component)myPlayer).GetComponentInChildren<Animator>();
 			if ((Object)(object)animator != (Object)null)
 			{
-				// Known animation parameters from RemoteAnimationController:
-				// "moving", "grounded", "jumping", "grinding", "idle"
 				try { animator.SetBool("idle", true); } catch { }
 				try { animator.SetBool("moving", false); } catch { }
 				try { animator.SetBool("grounded", true); } catch { }
 				try { animator.SetBool("jumping", false); } catch { }
 				try { animator.SetBool("grinding", false); } catch { }
-				// Also try common death parameter names in case they exist
 				try { animator.SetBool("dead", false); } catch { }
 				try { animator.SetBool("isDead", false); } catch { }
 				try { animator.Play("Idle", 0, 0f); } catch { }
@@ -244,6 +273,9 @@ public static class ResurrectionManager
 		{
 			Melon<BonkWithFriendsMod>.Logger.Warning($"[Resurrection] Error re-enabling components: {ex.Message}");
 		}
+
+		// Force immediate broadcast of alive state
+		LocalPlayerManager.BroadcastPlayerStateChange(forceImmediate: true);
 
 		// Update our network state and broadcast
 		LocalPlayerManager.UpdatePlayerDeath(false);

@@ -40,6 +40,8 @@ public static class PlayerPatches
 		Melon<BonkWithFriendsMod>.Logger.Msg($"[XpSync] Host gained {amount} XP, broadcasting to remote clients");
 	}
 
+	[HarmonyPrefix]
+	[HarmonyPatch(typeof(MyPlayer), "OnPlayerDied")]
 	public static bool MyPlayer_OnPlayerDied_Prefix(MyPlayer __instance)
 	{
 		if (SteamNetworkManager.Mode == SteamNetworkMode.None)
@@ -48,16 +50,6 @@ public static class PlayerPatches
 		}
 		LocalPlayerManager.UpdatePlayerDeath(true);
 		Melon<BonkWithFriendsMod>.Logger.Msg("OnPlayerDied: Player died, broadcasting death state");
-		return true;
-	}
-
-	public static bool PlayerHealth_CheckDead_Prefix(PlayerHealth __instance)
-	{
-		return true;
-	}
-
-	public static bool PlayerHealth_Tick_Prefix(PlayerHealth __instance)
-	{
 		return true;
 	}
 }

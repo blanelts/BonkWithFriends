@@ -279,6 +279,7 @@ public static class GameStatePatches
 		if (SteamNetworkManager.IsMultiplayer)
 		{
 			int seed = SteamNetworkLobby.Instance?.Seed ?? SteamNetworkManager.NetworkSeed;
+			SteamNetworkManager.NetworkSeed = seed;
 			Melon<BonkWithFriendsMod>.Logger.Msg($"[MapController] StartNewMap - Reinitializing RNGs with seed: {seed}");
 			Random.InitState(seed);
 			MapGenerator.seed = seed;

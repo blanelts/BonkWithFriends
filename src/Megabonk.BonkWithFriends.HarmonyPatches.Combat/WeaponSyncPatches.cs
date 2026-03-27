@@ -24,70 +24,6 @@ public static class WeaponSyncPatches
 
 	private static uint _nextAttackId = 1u;
 
-	private static Dictionary<WeaponAttack, int> _lastProjectileIndex = new Dictionary<WeaponAttack, int>();
-
-	public static void OnSetAttack(WeaponAttack __instance, WeaponBase weaponBase, MyPlayer player)
-	{
-		//IL_0060: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00f8: Unknown result type (might be due to invalid IL or missing references)
-		//IL_00fd: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0100: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0105: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0160: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0114: Unknown result type (might be due to invalid IL or missing references)
-		//IL_0116: Unknown result type (might be due to invalid IL or missing references)
-		if (SteamNetworkLobbyManager.State == SteamNetworkLobbyState.None)
-		{
-			return;
-		}
-		var logger = Melon<BonkWithFriendsMod>.Logger;
-		DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(48, 2);
-		defaultInterpolatedStringHandler.AppendLiteral("[WeaponSync] SetAttack called! InLobby=");
-		defaultInterpolatedStringHandler.AppendFormatted(SteamNetworkLobbyManager.State);
-		defaultInterpolatedStringHandler.AppendLiteral(", Weapon=");
-		EWeapon? value;
-		if (weaponBase == null)
-		{
-			value = null;
-		}
-		else
-		{
-			WeaponData weaponData = weaponBase.weaponData;
-			value = ((weaponData != null) ? new EWeapon?(weaponData.eWeapon) : ((EWeapon?)null));
-		}
-		defaultInterpolatedStringHandler.AppendFormatted(value);
-		logger.Msg(defaultInterpolatedStringHandler.ToStringAndClear());
-		if (SteamNetworkLobbyManager.State != SteamNetworkLobbyState.Joined)
-		{
-			return;
-		}
-		if (LocalPlayerManager.LocalPlayerState.IsDead)
-		{
-			return;
-		}
-		if (weaponBase == null || !((Object)((Object)(object)player)))
-		{
-			Melon<BonkWithFriendsMod>.Logger.Warning($"[WeaponSync] Null params: weapon={weaponBase != null}, player={(Object)(object)player != (Object)null}");
-			return;
-		}
-		try
-		{
-			uint value2 = _nextAttackId++;
-			_attackIds[__instance] = value2;
-			Vector3 projectilePosition = __instance.GetProjectilePosition();
-			Quaternion projectileRotation = __instance.GetProjectileRotation();
-			if (((Object)((Object)(object)LocalPlayerManager.LocalPlayer)))
-			{
-				LocalPlayerManager.SendAttackStarted(weaponBase, projectilePosition, projectileRotation);
-			}
-			Melon<BonkWithFriendsMod>.Logger.Msg($"[WeaponSync] SetAttack hooked: AttackID={value2}, Weapon={weaponBase.weaponData.eWeapon}");
-		}
-		catch (Exception ex)
-		{
-			Melon<BonkWithFriendsMod>.Logger.Error("[WeaponSync] Error in OnSetAttack: " + ex.Message);
-		}
-	}
-
 	[HarmonyPostfix]
 	[HarmonyPatch(typeof(WeaponAttack), "SpawnProjectile")]
 	public static void OnSpawnProjectile(WeaponAttack __instance, int projectileIndex)
@@ -174,23 +110,6 @@ public static class WeaponSyncPatches
 		catch (Exception ex2)
 		{
 			Melon<BonkWithFriendsMod>.Logger.Error("[WeaponSync] Error in OnSpawnProjectile: " + ex2.Message);
-		}
-	}
-
-	public static void OnAttackTimeout(WeaponAttack __instance)
-	{
-		if (SteamNetworkLobbyManager.State == SteamNetworkLobbyState.None || !_attackIds.TryGetValue(__instance, out var _))
-		{
-			return;
-		}
-		try
-		{
-			_attackIds.Remove(__instance);
-			_lastProjectileIndex.Remove(__instance);
-		}
-		catch (Exception ex)
-		{
-			Melon<BonkWithFriendsMod>.Logger.Error("[WeaponSync] Error in OnAttackTimeout: " + ex.Message);
 		}
 	}
 

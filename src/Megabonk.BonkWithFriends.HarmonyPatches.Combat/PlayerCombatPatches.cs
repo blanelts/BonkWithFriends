@@ -4,7 +4,6 @@ using Il2CppAssets.Scripts.Inventory__Items__Pickups;
 using Megabonk.BonkWithFriends.Networking.Messages.Client;
 using Megabonk.BonkWithFriends.Networking.Steam;
 using MelonLoader;
-using Steamworks;
 using UnityEngine;
 
 namespace Megabonk.BonkWithFriends.HarmonyPatches.Combat;
@@ -42,15 +41,12 @@ public static class PlayerCombatPatches
 		}
 	}
 
-	private static int _lastKnownLevel = 1;
-
+	[HarmonyPostfix]
+	[HarmonyPatch(typeof(PlayerHealth), "Damage")]
 	public static void OnPlayerDamaged(PlayerHealth __instance, float damage, Vector3 direction, string damageSource)
 	{
-		//IL_0009: Unknown result type (might be due to invalid IL or missing references)
 		if (SteamNetworkLobbyManager.State == SteamNetworkLobbyState.Joined)
 		{
-			SteamUser.GetSteamID();
-			Melon<BonkWithFriendsMod>.Logger.Msg($"[MP] Player damaged: {damage} from {damageSource}");
 			if (SteamNetworkManager.IsMultiplayer)
 			{
 				SteamNetworkClient.Instance?.SendMessage(new PlayerDamagedMessage
@@ -60,23 +56,6 @@ public static class PlayerCombatPatches
 					MaxHp = __instance.maxHp,
 					Shield = __instance.shield,
 					MaxShield = __instance.maxShield
-				});
-			}
-		}
-	}
-
-	public static void OnPlayerDied(PlayerHealth __instance)
-	{
-		//IL_0009: Unknown result type (might be due to invalid IL or missing references)
-		if (SteamNetworkLobbyManager.State == SteamNetworkLobbyState.Joined)
-		{
-			ulong steamID = SteamUser.GetSteamID().m_SteamID;
-			Melon<BonkWithFriendsMod>.Logger.Msg("[MP] Player died!");
-			if (SteamNetworkManager.IsMultiplayer)
-			{
-				SteamNetworkClient.Instance?.SendMessage(new PlayerDiedMessage
-				{
-					SteamUserId = steamID
 				});
 			}
 		}

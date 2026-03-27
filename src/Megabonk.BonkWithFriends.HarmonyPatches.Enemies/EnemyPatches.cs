@@ -10,6 +10,7 @@ using Il2CppAssets.Scripts.Managers;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using Megabonk.BonkWithFriends.Managers.Enemies;
 using Megabonk.BonkWithFriends.Managers.Player;
+using Megabonk.BonkWithFriends.Networking.Messages.Server;
 using Megabonk.BonkWithFriends.Networking.Steam;
 using MelonLoader;
 using UnityEngine;
@@ -474,6 +475,8 @@ public static class EnemyPatches
 
 	private static bool _processingNetworkDeath;
 
+	private static float _preDamageHp;
+
 	internal static void SetProcessingNetworkDeath(bool value) => _processingNetworkDeath = value;
 
 	[HarmonyPrefix]
@@ -552,8 +555,44 @@ public static class EnemyPatches
 		return true;
 	}
 
-	public static void Enemy_DamageFromPlayerWeapon_Postfix(Enemy __instance, ref DamageContainer __result)
+	[HarmonyPrefix]
+	[HarmonyPatch(typeof(Enemy), "DamageFromPlayerWeapon")]
+	public static bool Enemy_DamageFromPlayerWeapon_Prefix(Enemy __instance)
 	{
+		if (SteamNetworkManager.Mode == SteamNetworkMode.None)
+			return true;
+
+		_preDamageHp = __instance.hp;
+		return true;
+	}
+
+	[HarmonyPostfix]
+	[HarmonyPatch(typeof(Enemy), "DamageFromPlayerWeapon")]
+	public static void Enemy_DamageFromPlayerWeapon_Postfix(Enemy __instance)
+	{
+		if (SteamNetworkManager.Mode == SteamNetworkMode.None)
+			return;
+
+		float damage = _preDamageHp - __instance.hp;
+		if (damage <= 0f || __instance.id == 0)
+			return;
+
+		if (SteamNetworkManager.IsClient && !SteamNetworkManager.IsServer)
+		{
+			// Client: send damage to server, revert native HP change (server is authoritative)
+			LocalPlayerManager.SendProjectileHit(0, 0, Vector3.zero, Vector3.zero, __instance.id, damage);
+			__instance.hp = _preDamageHp;
+		}
+		else if (SteamNetworkManager.IsServer)
+		{
+			// Host: broadcast damage to clients so they stay in sync
+			SteamNetworkServer.Instance?.BroadcastToRemoteClients(new EnemyDamagedMessage
+			{
+				EnemyId = __instance.id,
+				HpNow = __instance.hp,
+				DamageForFx = damage
+			});
+		}
 	}
 
 	[HarmonyPrefix]
